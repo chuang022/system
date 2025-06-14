@@ -16,7 +16,12 @@
 ![系統畫面](docs/system_ui.png)
 
 ---
+### 📊 測驗結果畫面
+系統將自動計分並列出錯誤明細，協助初步辨識使用者的認知狀態與弱點類型。
 
+![測驗結果畫面](docs/system_result.png)
+
+---
 ## ⚙️ 技術架構
 - **前端**：React.js + Tailwind CSS
 - **後端**：Flask（Python）
