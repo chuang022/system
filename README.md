@@ -7,7 +7,8 @@
 ### 🏠 首頁畫面
 用戶可輸入 Email 開始測驗，並依序完成 MMSE 與 CDT 項目。
 
-![首頁畫面](docs/system_home.png)
+![首頁畫面](https://raw.githubusercontent.com/chuang022/system/main/docs/system_home.png)
+
 
 ### 🖥️ 測驗進行中畫面
 提供視覺化操作界面，包含作答、畫圖、AI 預測等功能。
