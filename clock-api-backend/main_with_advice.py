@@ -197,35 +197,35 @@ async def predict_image(request: Request, session_id: int, file: UploadFile = Fi
         
         # --- MOCK PREDICTION LOGIC (for testing without a real model) ---
         # 移除或註解此區塊當您要使用真實模型時
-        is_normal = random.choice([True, False])
-        if is_normal:
-            label = "normal"
-            confidence_percent = random.uniform(85.0, 99.9)
-            advice = "模擬結果：時鐘繪製測驗結果顯示正常，您的視覺空間和執行功能表現良好。"
-        else:
-            label = "abnormal"
-            confidence_percent = random.uniform(70.0, 95.0)
-            advice = "模擬結果：時鐘繪製測驗結果顯示可能存在異常。建議諮詢專業醫師進行進一步評估。"
+     #   is_normal = random.choice([True, False])
+     #   if is_normal:
+     #       label = "normal"
+     #       confidence_percent = random.uniform(85.0, 99.9)
+     #       advice = "模擬結果：時鐘繪製測驗結果顯示正常，您的視覺空間和執行功能表現良好。"
+     #   else:
+     #       label = "abnormal"
+     #     confidence_percent = random.uniform(70.0, 95.0)
+     #       advice = "模擬結果：時鐘繪製測驗結果顯示可能存在異常。建議諮詢專業醫師進行進一步評估。"
         # --- END OF MOCK PREDICTION ---
         
         # --- REAL MODEL PREDICTION LOGIC (uncomment to use) ---
-        # image = Image.open(io.BytesIO(contents)).convert("RGB")
-        # image_tensor = transform_cdt(image).unsqueeze(0).to(device)
-        #
-        # with torch.no_grad():
-        #     outputs = model_cdt(image_tensor)
-        #     probabilities = torch.nn.functional.softmax(outputs, dim=1)
-        #     confidence, predicted = torch.max(probabilities, 1)
-        #
-        # predicted_class_index = predicted.item()
-        # confidence_percent = confidence.item() * 100
-        # class_names = ["abnormal", "normal"]  # Ensure index 0=abnormal, 1=normal
-        # label = class_names[predicted_class_index]
-        #
-        # if label == "normal":
-        #     advice = "時鐘繪製測驗結果顯示正常，您的視覺空間和執行功能表現良好。"
-        # else:
-        #     advice = "時鐘繪製測驗結果顯示可能存在異常。建議諮詢專業醫師進行進一步評估。"
+         image = Image.open(io.BytesIO(contents)).convert("RGB")
+         image_tensor = transform_cdt(image).unsqueeze(0).to(device)
+        
+         with torch.no_grad():
+             outputs = model_cdt(image_tensor)
+             probabilities = torch.nn.functional.softmax(outputs, dim=1)
+             confidence, predicted = torch.max(probabilities, 1)
+        
+         predicted_class_index = predicted.item()
+         confidence_percent = confidence.item() * 100
+         class_names = ["abnormal", "normal"]  # Ensure index 0=abnormal, 1=normal
+         label = class_names[predicted_class_index]
+        
+         if label == "normal":
+             advice = "時鐘繪製測驗結果顯示正常，您的視覺空間和執行功能表現良好。"
+         else:
+             advice = "時鐘繪製測驗結果顯示可能存在異常。建議諮詢專業醫師進行進一步評估。"
         # --- END OF REAL MODEL LOGIC ---
 
     except Exception as e:
