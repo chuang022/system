@@ -87,28 +87,28 @@ def get_db_connection():
 
 # --- Model & Device Setup ---
 # 如果您有真實模型，請取消註解並配置以下程式碼
-# num_classes = 2
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# MODEL_PATH = "vgg16_transfer_best_model_addnewdata.pth"
-# model_cdt = models.vgg16(weights=None) # 或者 models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
-# model_cdt.classifier[6] = nn.Linear(model_cdt.classifier[6].in_features, num_classes)
-# if os.path.exists(MODEL_PATH):
-#     try:
-#         model_cdt.load_state_dict(torch.load(MODEL_PATH, map_location=device))
-#         print(f"✅ CDT 模型權重 '{MODEL_PATH}' 載入成功。")
-#     except Exception as e:
-#         print(f"❌ 載入 CDT 模型權重 '{MODEL_PATH}' 失敗: {e}")
-# else:
-#     print(f"❌ 錯誤：找不到 CDT 模型權重檔案 '{MODEL_PATH}'。")
-# model_cdt = model_cdt.to(device)
-# model_cdt.eval()
+num_classes = 2
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+MODEL_PATH = "vgg16_transfer_best_model_addnewdata.pth"
+model_cdt = models.vgg16(weights=None) # 或者 models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
+model_cdt.classifier[6] = nn.Linear(model_cdt.classifier[6].in_features, num_classes)
+if os.path.exists(MODEL_PATH):
+     try:
+         model_cdt.load_state_dict(torch.load(MODEL_PATH, map_location=device))
+         print(f"✅ CDT 模型權重 '{MODEL_PATH}' 載入成功。")
+     except Exception as e:
+         print(f"❌ 載入 CDT 模型權重 '{MODEL_PATH}' 失敗: {e}")
+ else:
+     print(f"❌ 錯誤：找不到 CDT 模型權重檔案 '{MODEL_PATH}'。")
+ model_cdt = model_cdt.to(device)
+ model_cdt.eval()
 
-# transform_cdt = transforms.Compose([
-#     transforms.Resize(256),
-#     transforms.CenterCrop(224),
-#     transforms.ToTensor(),
-#     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-# ])
+ transform_cdt = transforms.Compose([
+     transforms.Resize(256),
+     transforms.CenterCrop(224),
+     transforms.ToTensor(),
+     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+ ])
 
 CDT_IMAGES_DIR = "cdt_images"
 os.makedirs(CDT_IMAGES_DIR, exist_ok=True)
