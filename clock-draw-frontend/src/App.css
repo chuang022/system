@@ -1,0 +1,111 @@
+/* --- START OF FILE App.css --- */
+
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- 自定義 Radio Button 樣式 --- */
+/* 隱藏原生的 radio button */
+.custom-radio input[type="radio"] {
+  opacity: 0;
+  position: absolute;
+  width: 1px; /* 避免完全移除導致無法 focus */
+  height: 1px;
+  margin: -1px; /* 移出可見區域 */
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* 自定義 radio button 的容器 (label) */
+/* imageOptionLabelStyles 已經處理了 display: inline-flex, flex-direction: column, align-items: center */
+/* 所以 .custom-radio 主要用來觸發 input 的 :checked 狀態 */
+.custom-radio {
+  cursor: pointer; /* 確保鼠標指針是可點擊的樣子 */
+  /* 其他 imageOptionLabelStyles 中已定義的樣式會應用 */
+  /* 如果 label 樣式 (如 imageOptionLabelStyles) 沒有 flex-direction: column, align-items: center,
+     則需要在这里添加 display: inline-flex; flex-direction: column; align-items: center; */
+}
+
+
+/* 自定義的圓圈外觀 */
+.custom-radio .radio-visual {
+  width: 22px;  /* 略微增大以容納邊框和內點 */
+  height: 22px;
+  border: 2px solid #adb5bd; /* 未選中時的邊框顏色 (灰色系) */
+  border-radius: 50%;
+  /* 將 margin 移到這裡，確保它總是應用在 radio-visual 上 */
+  margin: 0 auto 10px auto; /* 在圖片上方居中，並與下方圖片產生 10px 間距 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  background-color: #fff; /* 給一個背景色，避免透明 */
+}
+
+/* 選中時的圓圈內點 */
+.custom-radio .radio-visual::after {
+  content: '';
+  width: 12px; /* 內點大小 */
+  height: 12px;
+  background-color: #007bff; /* 選中時的內部顏色 (藍色) */
+  border-radius: 50%;
+  display: block;
+  opacity: 0; /* 預設隱藏 */
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* 當 radio 被選中時，顯示內點，並改變邊框顏色 */
+.custom-radio input[type="radio"]:checked + .radio-visual {
+  border-color: #007bff; /* 選中時的邊框顏色 (藍色) */
+}
+
+.custom-radio input[type="radio"]:checked + .radio-visual::after {
+  opacity: 1;
+}
+
+/* 可選：當 radio button focus 時的樣式 (通過鍵盤導航) */
+.custom-radio input[type="radio"]:focus-visible + .radio-visual {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+  /* 或者使用 box-shadow */
+  /* box-shadow: 0 0 0 3px rgba(0,123,255,.35); */
+}
+
+/* --- END OF FILE App.css --- */
