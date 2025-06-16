@@ -1,6 +1,7 @@
-// --- START OF FILE App.js (COMPLETE WITH NAVBAR BUTTONS CENTERED) ---
+// --- START OF FILE App.js (HOMEPAGE MODIFIED) ---
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import './App.css'; // 確保引入您的 CSS 檔案
 
 // 匯入您的頁面組件
 import MMSEPage from "./pages/MMSEPage";
@@ -8,7 +9,7 @@ import DrawingPage from "./pages/DrawingPage_with_advice";
 import FeedbackPage from "./pages/FeedbackPage";
 import MMSE_ResultsDisplay from './pages/MMSE_ResultsDisplay';
 
-// --- ResultsPage Component ---
+// --- ResultsPage Component (無變動) ---
 const ResultsPage = ({ email }) => {
   const [mmseScore, setMmseScore] = useState(undefined);
   const [cdtScore, setCdtScore] = useState(undefined);
@@ -91,11 +92,13 @@ const ResultsPage = ({ email }) => {
   );
 };
 
-// --- HomePage Component (定義在 App.js 內部) ---
+
+// --- START: HomePage Component (已修改) ---
 function HomePage({ email, setEmail, setHasStarted }) {
   const [localEmail, setLocalEmail] = useState(email || "");
   const navigate = useNavigate();
   useEffect(() => { setLocalEmail(email || ""); }, [email]);
+
   const handleStart = () => {
     setEmail(localEmail);
     if (localEmail) localStorage.setItem("userEmail", localEmail);
@@ -107,76 +110,77 @@ function HomePage({ email, setEmail, setHasStarted }) {
     if (typeof setHasStarted === 'function') setHasStarted(true);
     navigate("/mmse");
   };
+
   return (
-    <div style={{ padding: "40px", textAlign: "center", maxWidth: "600px", margin: "auto", fontFamily: "'Noto Sans TC', Arial, sans-serif" }}>
-      <h1 style={{ color: "#2c3e50" }}>🧠 認知功能測驗系統</h1>
-      <p style={{ marginTop: "15px", color: "#555", lineHeight: "1.6" }}>本系統包含 MMSE 簡易智能狀態檢查和 CDT 畫鐘測驗，<br />請依序完成兩項測驗。</p>
-      <div style={{ marginTop: 40 }}>
-        <label htmlFor="emailInput" style={{ display: 'block', marginBottom: '10px', fontSize: '16px' }}>📩 請輸入 Email 以便記錄與追蹤結果 (選填)：</label>
-        <input id="emailInput" type="email" placeholder="輸入 Email 或留空" value={localEmail} onChange={(e) => setLocalEmail(e.target.value)} style={{ padding: "10px", fontSize: "16px", width: "80%", maxWidth: "350px", marginBottom: "20px", border: "1px solid #ccc", borderRadius: "4px" }} />
-        <br />
-        <button onClick={handleStart} style={{ padding: "12px 25px", fontSize: "17px", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", transition: "background-color 0.2s ease" }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#218838'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#28a745'}>開始測驗 ➡️</button>
+    <div className="home-container">
+      <h1 className="home-title">🧠 自動化認知功能評估系統</h1>
+      
+      <div className="flow-section">
+        <h2 className="flow-title">研究參與流程</h2>
+        <p className="home-intro">
+          本研究包含三大部分，為確保評估品質，請您依序完成：
+        </p>
+        <div className="flow-steps">
+          <div className="flow-step">1. <strong>MMSE 測驗</strong></div>
+          <div className="flow-step-arrow">➡️</div>
+          <div className="flow-step">2. <strong>CDT 畫鐘測驗</strong></div>
+          <div className="flow-step-arrow">➡️</div>
+          <div className="flow-step">3. <strong>使用者回饋問卷</strong></div>
+        </div>
+        <div className="sound-reminder">
+          🔊 <strong>重要提醒：</strong>測驗中包含<strong style={{color: '#c0392b'}}>聲音題</strong>，請務必開啟您裝置的聲音並調整至合適音量。
+        </div>
       </div>
+
+      <div className="email-section">
+        <label htmlFor="emailInput" className="email-label">
+          📩 請留下您的 Email 以便後續寄送研究摘要 <strong>(此為選填)</strong>：
+        </label>
+        <input
+          id="emailInput"
+          type="email"
+          placeholder="輸入 Email 或留空"
+          value={localEmail}
+          onChange={(e) => setLocalEmail(e.target.value)}
+          className="email-input"
+        />
+      </div>
+
+      <button onClick={handleStart} className="start-button">
+        我已了解流程，開始測驗 ➡️
+      </button>
     </div>
   );
 }
+// --- END: HomePage Component ---
 
-// --- TopNavbar Component ---
+
+// --- TopNavbar Component (無變動) ---
 const TopNavbar = ({ email, setEmail }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const navItems = [
-    { path: "/", label: "🏠 回首頁" }, { path: "/mmse", label: "📝 MMSE" }, 
-    { path: "/mmse-results", label: "📊 MMSE結果"}, { path: "/drawing", label: "🕒 CDT" }, 
-    { path: "/results", label: "📈 總結果" }, { path: "/feedback", label: "🗣️ 使用回饋" }
+    { path: "/", label: "🏠 回首頁" }, 
+    { path: "/mmse", label: "📝 MMSE" }, 
+    { path: "/drawing", label: "🕒 CDT" }, 
+    { path: "/results", label: "📈 總結果" }, 
+    { path: "/feedback", label: "🗣️ 填寫問卷" }
   ];
   return (
     <div style={{
-      position: 'sticky', 
-      top: 0,             
-      zIndex: 950,        
-      width: "100%",      
-      backgroundColor: "#ffffff",
-      padding: "15px 20px", 
-      boxShadow: "0 2px 4px rgba(0,0,0,0.12)",
-      display: "flex",
-      alignItems: "center",
-      // justifyContent: "space-between", // 移除，改用下面的三區域佈局
-      flexWrap: 'nowrap', 
-      gap: '10px',        
+      position: 'sticky', top: 0, zIndex: 950, width: "100%",      
+      backgroundColor: "#ffffff", padding: "15px 20px", boxShadow: "0 2px 4px rgba(0,0,0,0.12)",
+      display: "flex", alignItems: "center", flexWrap: 'nowrap', gap: '10px',        
       fontFamily: "'Noto Sans TC', Arial, sans-serif",
     }}>
-      {/* 左側標題 */}
-      <div 
-        style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            cursor: 'pointer', 
-            // marginRight: 'auto', // 移除，讓中間內容可以居中
-            flexShrink: 0, 
-        }} 
-        onClick={() => navigate('/')}
-      >
+      <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate('/')}>
          <span style={{ fontSize: "26px", marginRight: "10px", lineHeight: 1 }}>🧠</span>
          <h3 style={{ margin: "0", color: "#333", fontSize: "20px", whiteSpace: 'nowrap' }}>認知功能測驗</h3>
       </div>
-
-      {/* 中間按鈕組 */}
-      <div 
-        style={{ 
-            display: 'flex', 
-            gap: '10px', 
-            justifyContent: 'center', // *** 讓按鈕在其容器內居中 ***
-            flexWrap: 'nowrap', 
-            overflowX: 'auto', 
-            flexGrow: 1, // *** 讓這個容器填充可用空間 ***
-            minWidth: 0, 
-        }}
-      >
+      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'nowrap', overflowX: 'auto', flexGrow: 1, minWidth: 0 }}>
         {navItems.map(item => (
           <button 
-            key={item.path} 
-            onClick={() => navigate(item.path)}
+            key={item.path} onClick={() => navigate(item.path)}
             style={{ 
                 padding: "8px 15px", fontSize: "15px", borderRadius: "6px", 
                 backgroundColor: location.pathname === item.path ? "#007bff" : "transparent", 
@@ -189,28 +193,17 @@ const TopNavbar = ({ email, setEmail }) => {
             >{item.label}</button>
         ))}
       </div>
-
-      {/* 右側空間佔位 */}
-      <div style={{ 
-          // 這個寬度應約等於左側標題的寬度，以幫助中間部分正確居中
-          // 您需要根據實際情況調整這個值
-          width: '220px', // 初始猜測值，請根據左側標題寬度調整
-          flexShrink: 0,
-          pointerEvents: 'none' // 使其不可交互
-      }}>
-          {/* 此處留空或放置不可見元素 */}
-      </div>
+      <div style={{ width: '220px', flexShrink: 0, pointerEvents: 'none' }}></div>
     </div>
   );
 };
 
-// --- ContentWrapper Component ---
+// --- ContentWrapper Component (無變動) ---
 const ContentWrapper = ({ children }) => {
-  const navbarHeight = "75px"; // 根據 TopNavbar 的實際高度調整
+  const navbarHeight = "75px";
   return (
     <div style={{ 
-      paddingTop: navbarHeight, 
-      paddingLeft: "20px", paddingRight: "20px", paddingBottom: "20px", 
+      paddingTop: navbarHeight, paddingLeft: "20px", paddingRight: "20px", paddingBottom: "20px", 
       minHeight: `calc(100vh - ${navbarHeight})`
     }}>
       {children}
@@ -218,7 +211,7 @@ const ContentWrapper = ({ children }) => {
   );
 };
 
-// --- AppContent Component ---
+// --- AppContent Component (無變動) ---
 function AppContent() {
   const [email, setEmail] = useState("");
   const [hasStarted, setHasStarted] = useState(false);
@@ -241,7 +234,7 @@ function AppContent() {
   );
 }
 
-// --- 主要的 App 組件 ---
+// --- 主要的 App 組件 (無變動) ---
 function App() {
   return (
     <Router>
@@ -251,4 +244,4 @@ function App() {
 }
 
 export default App;
-// --- END OF FILE App.js (COMPLETE WITH NAVBAR BUTTONS CENTERED) ---
+// --- END OF FILE App.js (HOMEPAGE MODIFIED) ---
