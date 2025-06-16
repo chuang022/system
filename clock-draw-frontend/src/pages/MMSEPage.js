@@ -1,10 +1,4 @@
-// --- START OF FILE MMSEPage.js (MODIFIED FOR IP-BASED LOCATION SCORING AND UI) ---
-// MMSEPage with step-by-step progression.
-// IP-based geolocation for Step 3 is fetched.
-// If IP country is Taiwan, user must select matching country and city.
-// If IP country is NOT Taiwan, city selection is disabled, and city is auto-correct for scoring if country matches.
-// IP location data is sent to backend along with user's answers.
-
+// --- START OF FILE MMSEPage.js (COMPLETE & FULLY CORRECTED) ---
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
@@ -71,13 +65,12 @@ const MMSEPage = ({ email }) => {
     const [wordsToRecall, setWordsToRecall] = useState([]);
     const [recallOptions, setRecallOptions] = useState([]);
     const commandActionOptions = COMMAND_ACTION_OPTIONS_DATA; 
-    // namingTargets 和 displayedNamingItems 在 useEffect 中設定
     const [namingTargets, setNamingTargets] = useState([]); 
     const [displayedNamingItems, setDisplayedNamingItems] = useState([]); 
 
     const [currentStep, setCurrentStep] = useState(1);
     const totalSteps = 12;
-    const [isLocating, setIsLocating] = useState(true); // 初始設為 true，因為步驟3會立即嘗試定位
+    const [isLocating, setIsLocating] = useState(true);
     const [ipLocationData, setIpLocationData] = useState({
         ipCountry: null, ipCity: null, queryIp: null, error: null,
         rawCountry: null, rawCity: null,
@@ -100,7 +93,7 @@ const MMSEPage = ({ email }) => {
       setFormData(prev => {
           const newMMSEState = { ...prev.mmse, [q]: value };
           if (q === "country" && value !== "台灣") {
-              newMMSEState.city = ""; // 如果選擇的國家不是台灣，清空城市
+              newMMSEState.city = "";
           }
           return { ...prev, mmse: newMMSEState };
       });
@@ -108,10 +101,8 @@ const MMSEPage = ({ email }) => {
 
     useEffect(() => {
         if (currentStep === 3 && !ipLocationData.queryIp && !ipLocationData.error) {
-            // 只有在首次進入步驟3且未獲取過IP時才執行
             const fetchLocation = async () => {
-                setIsLocating(true); // 確保在請求開始時設置
-                console.log("📍[MMSEPage] 開始獲取 IP 地理位置...");
+                setIsLocating(true);
                 try {
                     const response = await axios.get(`${backendBaseUrl}/api/get_location_from_ip`);
                     const { country, city, query_ip, error: apiError, raw_country, raw_city } = response.data;
@@ -121,35 +112,28 @@ const MMSEPage = ({ email }) => {
                     });
                 } catch (error) {
                     const errorMessage = error.response?.data?.detail || JSON.stringify(error.response?.data) || error.message;
-                    console.error("❌[MMSEPage] 獲取 IP 地理位置失敗:", errorMessage);
                     setIpLocationData(prev => ({ ...prev, error: `獲取位置失敗: ${errorMessage}`, queryIp: "error_occurred" }));
                 } finally {
                     setIsLocating(false);
-                    console.log("📍[MMSEPage] 結束獲取 IP 地理位置。");
                 }
             };
             fetchLocation();
         } else if (currentStep === 3 && (ipLocationData.queryIp || ipLocationData.error)) {
-            // 如果已在步驟3且已有IP數據(或錯誤)，確保 isLocating 為 false
              if (isLocating) setIsLocating(false);
         } else if (currentStep !== 3 && isLocating) {
-            // 如果離開步驟3，且 isLocating 仍為 true，則重置它
             setIsLocating(false);
         }
-    }, [currentStep, backendBaseUrl, ipLocationData.queryIp, ipLocationData.error]); // 移除 isLocating 從依賴，避免循環
+    }, [currentStep, backendBaseUrl, ipLocationData.queryIp, ipLocationData.error]);
     
     const handleNextStep = () => {
-        const currentMMSEData = formDataRef.current.mmse; // 從 ref 獲取最新資料
-
+        const currentMMSEData = formDataRef.current.mmse;
         if (currentStep === 1 && (!formDataRef.current.gender || !formDataRef.current.age || !formDataRef.current.education || !formDataRef.current.med_depression || !formDataRef.current.med_sleep || !formDataRef.current.med_attention)) {
             alert("請完整填寫基本資料及藥物服用情況！"); return;
         }
-        
-        if (currentStep === 3) { // 地點定向步驟的驗證
+        if (currentStep === 3) {
             if (!currentMMSEData.country) {
                 alert("請選擇您所在的國家。"); return;
             }
-            // 只有當 IP 偵測國家是台灣，且使用者也選擇台灣時，城市才是必填
             if (currentMMSEData.country === "台灣" && ipLocationData.ipCountry === "台灣" && !currentMMSEData.city) {
                  alert("請選擇您所在的城市/縣市。"); return;
             }
@@ -157,7 +141,6 @@ const MMSEPage = ({ email }) => {
                 alert("請選擇測驗方式。"); return;
             }
         }
-
         if (currentStep < totalSteps) setCurrentStep(prev => prev + 1);
         else handleSubmit();
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -171,8 +154,6 @@ const MMSEPage = ({ email }) => {
     const gradeMMSE = (answers, currentWordsToRecallFromState, namingTargetsFromState, ipData) => {
         const currentIpCountry = ipData.ipCountry;
         const currentIpCity = ipData.ipCity;
-        console.log("[MMSEPage gradeMMSE] IP 偵測:", { currentIpCountry, currentIpCity }, "使用者選擇:", { country: answers.country, city: answers.city, mode: answers.mode });
-
         const now = new Date();
         let total = 0;
         const details = [];
@@ -183,92 +164,60 @@ const MMSEPage = ({ email }) => {
             subtraction: ["93", "86", "79", "72", "65"], sentence_order: "一隻老狗在陽光下散步",
             fill_sentence: "吃了早餐", follow_command_choice: "跑步", overlap_choice: "選項4",
         };
-
         ["year", "month", "date", "weekday", "season"].forEach(k => {
             if (String(answers[k] || "").trim() === correctBase[k]) total++;
             else details.push(`① 時間定向 - ${k} 錯誤 (選: ${answers[k] || 'N/A'}, 正: ${correctBase[k]})`);
         });
-
         let locCorrectCount = 0; const locErrs = []; let countryOk=false, cityOk=false, modeOk=false;
-        
-        // 國家計分
         if (answers.country && String(answers.country).trim()) {
-            if (currentIpCountry) { // 如果有 IP 偵測國家
+            if (currentIpCountry) {
                 if (String(answers.country).trim() === String(currentIpCountry).trim()) countryOk=true;
                 else locErrs.push(`國家選擇與IP偵測不符 (您選: ${answers.country}, IP偵測: ${currentIpCountry})`);
-            } else { // 無 IP 偵測國家，使用者有選即可 (較寬鬆)
-                countryOk=true; 
-                // locErrs.push(`IP未偵測到國家，使用者選擇:${answers.country} (計為正確)`); // 可選，或不加入錯誤
-            }
+            } else { countryOk=true; }
         } else locErrs.push("國家未選擇");
-
-        // 城市計分
-        if (currentIpCountry === "台灣") { // 僅當 IP 偵測為台灣時，嚴格檢查城市
+        if (currentIpCountry === "台灣") {
             if (answers.city && String(answers.city).trim()) {
-                if (currentIpCity) { // IP 偵測到台灣且有城市
+                if (currentIpCity) {
                     if (String(answers.city).trim() === String(currentIpCity).trim()) cityOk=true;
                     else locErrs.push(`城市選擇與IP偵測不符 (您選: ${answers.city}, IP偵測: ${currentIpCity})`);
-                } else { // IP 偵測到台灣但無城市，使用者有選即可
-                    cityOk=true;
-                    // locErrs.push(`IP偵測為台灣但無城市資訊，使用者選擇:${answers.city} (計為正確)`); // 可選
-                }
+                } else { cityOk=true; }
             } else locErrs.push("城市/縣市未選擇 (IP偵測為台灣時需選擇)");
-        } else { // IP 偵測國家不是台灣，或無法偵測國家
-            cityOk=true; // 自動算對
-            if(currentIpCountry && String(answers.country).trim() === String(currentIpCountry).trim()) { // 且使用者選擇的國家與IP偵測一致
-                 // 可以不推入 details，因為這是預期行為
-            } else if (currentIpCountry) {
-                // 如果使用者選的國家和非台灣的IP偵測不符，但城市仍算對
-                // locErrs.push(`國家選擇與IP偵測不符，但城市項目因非台灣地區自動計為正確`);
-            }
-        }
-
-        // 模式計分
+        } else { cityOk=true; }
         if (answers.mode && String(answers.mode).trim()) modeOk=true;
         else locErrs.push("測驗方式未選擇");
-        
         if(countryOk) locCorrectCount++; 
         if(cityOk) locCorrectCount++; 
         if(modeOk) locCorrectCount++;
-        
         const currentOrientationScore = locCorrectCount === 3 ? 5 : locCorrectCount;
         total += currentOrientationScore;
         if (locCorrectCount < 3 && locErrs.length > 0) {
             details.push(`② 地點定向 - 錯誤: ${locErrs.join('; ')}。此項得分: ${currentOrientationScore}`);
-        } else if (locCorrectCount < 3) { // 例如，都選了，但 IP 資訊不全導致無法完美驗證
-            // details.push(`② 地點定向 - 部分項目因IP資訊不全無法完全驗證，依選擇計分。此項得分: ${currentOrientationScore}`);
         }
-        
         for (let i=0; i<5; i++) {
             if (String(answers[`sub${i+1}`]||"").trim() === correctBase.subtraction[i]) total++;
             else details.push(`④ 計算-第${i+1}次減法錯 (預:${correctBase.subtraction[i]}, 選:${answers[`sub${i+1}`]||'N/A'})`);
         }
-
         let recallPts = 0; const recalledOkNames = [];
         if (Array.isArray(currentWordsToRecallFromState) && currentWordsToRecallFromState.length > 0) {
-            currentWordsToRecallFromState.forEach(w => { if (answers[`image_memory_${w.id}`]===true) { recallPts+=2; recalledOkNames.push(w.name);}});
+            currentWordsToRecallFromState.forEach(w => { if (answers[`image_memory_${w.id}`]===true) { recallPts+=1; recalledOkNames.push(w.name);}}); // 注意: MMSE標準計分通常是每對一個詞得1分
             total += recallPts;
             if (recalledOkNames.length < currentWordsToRecallFromState.length) {
                 const missed = currentWordsToRecallFromState.filter(w => !recalledOkNames.includes(w.name)).map(w => w.name).join(', ') || '無';
                 details.push(`⑤ 回憶-未全對(應:${currentWordsToRecallFromState.length},對:${recalledOkNames.length},漏:${missed}) 得:${recallPts}`);
             }
         } else details.push("⑤ 回憶-目標詞列表錯");
-        
         let namePts = 0;
         if (namingTargetsFromState && namingTargetsFromState.length === 2) {
             const userNamingSelections = answers.naming_selections || {};
             namingTargetsFromState.forEach(t => { if (userNamingSelections[t.id]===true) namePts++; else details.push(`⑥ 命名-未選對:${t.name}`);});
             total += namePts;
         }
-
         if (String(answers.sentence_order||"").trim() === correctBase.sentence_order) total++; else details.push(`⑦ 重複-句錯(選:"${answers.sentence_order||'N/A'}",正:"${correctBase.sentence_order}")`);
         const correctActs = ["拿起紙張","對折紙張","放在膝上"]; 
         correctActs.forEach((act,i)=>{ if(String(answers[`action_row${i}`]||"").trim()===act)total++; else details.push(`⑧ 理解與執行-指令${i+1}錯(預:${act},選:${answers[`action_row${i}`]||'N/A'})`);});
         if (String(answers.fill_sentence||"").trim() === correctBase.fill_sentence) total++; else details.push(`⑨ 書寫-句錯(選:"${answers.fill_sentence||'N/A'}",正:"${correctBase.fill_sentence}")`);
         if (String(answers.follow_command_choice||"").trim() === correctBase.follow_command_choice) total++; else details.push(`⑩ 指令卡-選錯(選:"${answers.follow_command_choice||'N/A'}",正:"${correctBase.follow_command_choice}")`);
         if (String(answers.overlap_choice||"").trim() === correctBase.overlap_choice) total++; else details.push(`⑪ 視覺空間-圖錯(選:"${answers.overlap_choice||'N/A'}",正:"${correctBase.overlap_choice}")`);
-
-        console.log("[MMSEPage gradeMMSE] 最終分數:", total, "詳細資訊:", details);
         return { total, details };
     };
 
@@ -278,9 +227,7 @@ const MMSEPage = ({ email }) => {
             alert("錯誤：基本資料或藥物服用情況未完整填寫，無法提交。請返回步驟1檢查。");
             setCurrentStep(1); window.scrollTo({ top: 0, behavior: 'smooth' }); return;
         }
-        
         const mmseResultsObject = gradeMMSE(currentFormData.mmse, wordsToRecall, namingTargets, ipLocationData);
-        
         try {
             const dataToSubmit = {
                 email: email || localStorage.getItem("userEmail") || null,
@@ -291,15 +238,13 @@ const MMSEPage = ({ email }) => {
                 ip_detected_country: ipLocationData.ipCountry, ip_detected_city: ipLocationData.ipCity,
                 queried_ip_address: ipLocationData.queryIp, ip_location_raw_country: ipLocationData.rawCountry,
                 ip_location_raw_city: ipLocationData.rawCity, ip_location_error: ipLocationData.error,
-                naming_task_correct_ids: namingTargets.map(t => t.id) // Ensure namingTargets is from state
+                naming_task_correct_ids: namingTargets.map(t => t.id)
             };
-            
             const response = await axios.post(`${backendBaseUrl}/api/submit_mmse_session`, dataToSubmit);
             if (response.data && typeof response.data.session_id === 'number') {
                 localStorage.setItem("current_session_id", String(response.data.session_id));
                 const userEmailKey = email || localStorage.getItem("userEmail");
                 const mmseStorageKey = userEmailKey ? `mmse_result_${userEmailKey}` : 'mmse_result_guest';
-                
                 const resultToStore = {
                     score: mmseResultsObject.total, date: new Date().toISOString(), details: mmseResultsObject.details, 
                     userSelectedLocation: { country: currentFormData.mmse.country, city: currentFormData.mmse.city },
@@ -326,125 +271,128 @@ const MMSEPage = ({ email }) => {
     };
 
     const renderStepContent = () => {
-        const countryOptions = ["台灣", "美國", "日本", "中國"]; // 使用者可選的國家列表
-        // cityOptions (taiwaneseCitiesAndCounties) 在組件頂層定義
+        const countryOptions = ["台灣", "美國", "日本", "中國"];
         const modeOptions = ["網路", "紙筆"];
         const q1DateFields = ['year', 'month', 'date', 'weekday', 'season'];
-        const q4Steps = [1,2,3,4,5];
+        const q4Steps = [1, 2, 3, 4, 5];
         const q7SentenceOrderOptions = ["在陽光下一隻老狗散步", "一隻老狗在陽光下散步", "老狗一隻散步在陽光下", "陽光下有一隻狗老在散步"];
         const q9FillSentenceOptions = ["吃了早餐", "不要", "蘋果", "睡"];
-        const q11OverlapImgOptions = [1,2,3,4];
-        const basicInfoGenderOptions = ["男", "女", "其他"];
+        const q11OverlapImgOptions = [1, 2, 3, 4];
+        const basicInfoGenderOptions = ["男", "女", ];
         const basicInfoEducationOptions = ["未受教育", "小學", "國中", "高中/職", "大專/大學", "研究所以上"];
-        const yesNoOptions = ["是", "否"];
+        const yesNoOptions = ["是", "否", "不確定"];
 
         const fieldsetStyles = { marginBottom: "30px", padding: "20px 25px", border: "1px solid #ccc", borderRadius: "8px", backgroundColor: "#f9f9f9" };
         const legendStyles = { fontWeight: "bold", padding: "0 10px", fontSize: "20px", color: "#333" };
         const questionLabelStyles = { display: 'block', marginBottom: '10px', fontSize: '17px', fontWeight: '500', color: '#444' };
         const optionLabelStyles = { marginRight: "25px", fontSize: '17px', cursor: 'pointer' };
-        const imageOptionLabelStyles = { display: "inline-flex", flexDirection: "column", alignItems: "center", padding:"15px", border:"1px solid #ddd", borderRadius:"6px", minWidth: "160px", cursor: "pointer", fontSize: "17px", backgroundColor: "#fff", transition: "all 0.2s ease" };
+        const imageOptionLabelStyles = { display: "inline-flex", flexDirection: "column", alignItems: "center", padding: "15px", border: "1px solid #ddd", borderRadius: "6px", minWidth: "160px", cursor: "pointer", fontSize: "17px", backgroundColor: "#fff", transition: "all 0.2s ease" };
         const selectedImageOptionLabelStyles = { ...imageOptionLabelStyles, borderColor: "#007bff", boxShadow: "0 0 0 2px rgba(0,123,255,.25)" };
         const selectStyles = { padding: "10px", fontSize: '17px', borderRadius: '4px', border: '1px solid #ccc', minWidth: '220px', backgroundColor: 'white' };
         
+        const stepInstructionStyles = {
+            fontSize: '18px',
+            fontWeight: 'bold',
+            color: '#34495e',
+            backgroundColor: '#ecf0f1',
+            padding: '15px 20px',
+            borderRadius: '8px',
+            textAlign: 'center',
+            marginBottom: '30px',
+            border: '1px solid #bdc3c7',
+            lineHeight: '1.6'
+        };
+
         const safeMap = (arr, callback) => Array.isArray(arr) && arr.length > 0 ? arr.map(callback) : null;
         
-        // 判斷城市選擇器是否應該被禁用
-        // 如果正在定位，或 IP 國家不是台灣，或 IP 查詢失敗/未完成，則禁用城市選擇
         const isCitySelectionDisabled = isLocating || (ipLocationData.queryIp && ipLocationData.ipCountry && ipLocationData.ipCountry !== "台灣") || !ipLocationData.queryIp || !!ipLocationData.error;
-        const citySelectorEffectiveStyle = isCitySelectionDisabled ? {...selectStyles, backgroundColor: '#e9ecef', cursor: 'not-allowed'} : selectStyles;
+        const citySelectorEffectiveStyle = isCitySelectionDisabled ? { ...selectStyles, backgroundColor: '#e9ecef', cursor: 'not-allowed' } : selectStyles;
 
         switch (currentStep) {
             case 1: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>基本資料({currentStep}/{totalSteps})</legend>
-                <div style={{marginBottom:"20px"}}><label style={{...questionLabelStyles,minWidth:"180px",display:"inline-block"}}>性別：</label>{safeMap(basicInfoGenderOptions,g=>(<label key={g} style={optionLabelStyles}><input type="radio" name="gender" value={g} checked={formData.gender===g} onChange={()=>handleChange("gender",g)} required/> {g}</label>))}</div>
-                <div style={{marginBottom:"20px"}}><label htmlFor="ageSelect" style={{...questionLabelStyles,minWidth:"180px",display:"inline-block"}}>年齡區間：</label><select id="ageSelect" value={formData.age} onChange={e=>handleChange("age",e.target.value)} required style={selectStyles}><option value="">請選擇</option>{Array.from({length:14},(_,i)=>{const m=20+i*5;const x=m+4;const l=i===13?"85歲以上":`${m}-${x}歲`;return <option key={l} value={l}>{l}</option>;})}</select></div>
-                <div style={{marginBottom:"20px"}}><label style={{...questionLabelStyles,minWidth:"180px",display:"inline-block"}}>教育程度：</label>{safeMap(basicInfoEducationOptions,e=>(<label key={e} style={optionLabelStyles}><input type="radio" name="education" value={e} checked={formData.education===e} onChange={()=>handleChange("education",e)} required/> {e}</label>))}</div>
-                <div style={{marginTop:"25px",paddingTop:"20px",borderTop:"1px dashed #ccc"}}><p style={{fontWeight:"bold",marginBottom:"15px",fontSize:'18px'}}>藥物服用情況：</p>
-                    {[['med_depression','憂鬱'],['med_sleep','睡眠'],['med_attention','注意力']].map(([f,n])=>(<div key={f} style={{marginBottom:"15px",display:'flex',alignItems:'center'}}><label style={{...questionLabelStyles,minWidth:"250px",display:"inline-block"}}>是否有服用{n}相關藥物?</label>{safeMap(yesNoOptions,v=>(<label key={`${f}-${v}`} style={optionLabelStyles}><input type="radio" name={f} value={v} checked={formData[f]===v} onChange={()=>handleChange(f,v)} required/>{v}</label>))}</div>))}
+                <div style={stepInstructionStyles}>請您協助填寫基本資料及藥物服用情況。</div>
+                <div style={{ marginBottom: "20px" }}><label style={{ ...questionLabelStyles, minWidth: "180px", display: "inline-block" }}>性別：</label>{safeMap(basicInfoGenderOptions, g => (<label key={g} style={optionLabelStyles}><input type="radio" name="gender" value={g} checked={formData.gender === g} onChange={() => handleChange("gender", g)} required /> {g}</label>))}</div>
+                <div style={{ marginBottom: "20px" }}><label htmlFor="ageSelect" style={{ ...questionLabelStyles, minWidth: "180px", display: "inline-block" }}>年齡區間：</label><select id="ageSelect" value={formData.age} onChange={e => handleChange("age", e.target.value)} required style={selectStyles}><option value="">請選擇</option><option value="20歲以下">20歲以下</option>{Array.from({ length: 14 }, (_, i) => { const m = 20 + i * 5; const x = m + 4; const l = i === 13 ? "85歲以上" : `${m}-${x}歲`; return <option key={l} value={l}>{l}</option>; })}</select></div>
+                <div style={{ marginBottom: "20px" }}><label style={{ ...questionLabelStyles, minWidth: "180px", display: "inline-block" }}>教育程度：</label>{safeMap(basicInfoEducationOptions, e => (<label key={e} style={optionLabelStyles}><input type="radio" name="education" value={e} checked={formData.education === e} onChange={() => handleChange("education", e)} required /> {e}</label>))}</div>
+                <div style={{ marginTop: "25px", paddingTop: "20px", borderTop: "1px dashed #ccc" }}><p style={{ fontWeight: "bold", marginBottom: "15px", fontSize: '18px' }}>藥物服用情況：</p>
+                    {[['med_depression', '憂鬱'], ['med_sleep', '睡眠'], ['med_attention', '注意力']].map(([f, n]) => (<div key={f} style={{ marginBottom: "15px", display: 'flex', alignItems: 'center' }}><label style={{ ...questionLabelStyles, minWidth: "250px", display: "inline-block" }}>是否有服用{n}相關藥物?</label>{safeMap(yesNoOptions, v => (<label key={`${f}-${v}`} style={optionLabelStyles}><input type="radio" name={f} value={v} checked={formData[f] === v} onChange={() => handleChange(f, v)} required />{v}</label>))}</div>))}
                 </div></fieldset>);
-            case 2: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>① 今天的日期是?({currentStep}/{totalSteps})</legend>
-                {safeMap(q1DateFields,(f)=>{const opts=generateOptions(f);if(!Array.isArray(opts))return <p key={f} style={{color:"red"}}>Err:{f}</p>;return(<div key={f} style={{marginBottom:"15px",display:'flex',alignItems:'center',gap:'10px'}}><label htmlFor={`s-${f}`} style={{minWidth:'90px',textAlign:'right',fontSize:'17px',fontWeight:'500'}}>{f==='year'?'年份':f==='month'?'月份':f==='date'?'日期':f==='weekday'?'星期幾':'季節'}：</label><select id={`s-${f}`} value={formData.mmse[f]||""} onChange={e=>handleMMSEChange(f,e.target.value)} required style={{...selectStyles,minWidth:"200px",flexGrow:1}}><option value="">請選擇</option>{safeMap(opts,(op,j)=>typeof op==='object'?(<option key={j} value={op.value} title={op.hint}>{op.label}{op.hint?`(${op.hint})`:''}</option>):(<option key={j} value={op}>{op}</option>))}</select></div>);})}</fieldset>);
-            case 3: 
-                return ( 
-                    <fieldset style={fieldsetStyles}> 
-                        <legend style={legendStyles}> ② 您現在的地點是? (步驟 {currentStep}/{totalSteps}) 
-                            {isLocating && <span style={{ marginLeft: '15px', fontSize: '16px', color: '#007bff', fontWeight: 'normal' }}>🌍 正在獲取您的IP位置資訊...</span>}
-                            {ipLocationData.queryIp && !isLocating && !ipLocationData.error && (
-                                <span style={{ marginLeft: '15px', fontSize: '14px', color: 'green', fontWeight: 'normal' }}>
-                                    ✓ IP偵測資訊 (僅供參考): {ipLocationData.ipCountry || '未知國家'}, {ipLocationData.ipCity || '未知城市'}
-                                </span>
-                            )}
-                            {ipLocationData.error && !isLocating && (
-                                <span style={{ marginLeft: '15px', fontSize: '14px', color: 'red', fontWeight: 'normal' }}>
-                                    ✗ IP位置資訊獲取失敗。
-                                </span>
-                            )}
-                        </legend> 
-                        <div style={{ marginBottom: "20px" }}> 
-                            <label style={questionLabelStyles}>Q. 本測驗進行於哪一國？ <span style={{color: 'red'}}>*</span></label> 
-                            {safeMap(countryOptions, (c) => ( 
-                                <label key={c} style={optionLabelStyles}>
-                                    <input type="radio" name="country" value={c} 
-                                           checked={formData.mmse.country === c} 
-                                           onChange={(e) => handleMMSEChange("country", e.target.value)} 
-                                           disabled={isLocating}
-                                    /> {c}
-                                </label> 
-                            ))} 
-                        </div> 
-                        <div style={{ marginBottom: "20px" }}> 
-                            <label htmlFor="citySelect" style={questionLabelStyles}>
-                                Q. 您目前所在城市/縣市？ 
-                                {/* 只有當IP偵測為台灣且使用者也選台灣時，此項才為必填星號 */}
-                                {formData.mmse.country === "台灣" && ipLocationData.ipCountry === "台灣" && <span style={{color: 'red'}}>*</span>} 
-                                {isCitySelectionDisabled && ipLocationData.ipCountry && ipLocationData.ipCountry !== "台灣" && 
-                                    <span style={{fontSize: '0.9em', color: '#6c757d', marginLeft: '10px'}}>(IP偵測非台灣地區，無需選擇城市)</span>}
-                            </label> 
-                            <select id="citySelect" 
-                                    value={formData.mmse.city || ""} 
-                                    onChange={(e) => handleMMSEChange("city", e.target.value)} 
-                                    style={citySelectorEffectiveStyle} 
-                                    disabled={isCitySelectionDisabled || formData.mmse.country !== "台灣"} // 如果國家不是台灣，也禁用
-                                    required={formData.mmse.country === "台灣" && ipLocationData.ipCountry === "台灣" && !isCitySelectionDisabled}
-                            > 
-                                <option value="">
-                                    {isCitySelectionDisabled || formData.mmse.country !== "台灣" ? "無需選擇" : "請選擇城市/縣市"}
-                                </option> 
-                                {/* 只有當使用者選擇台灣，且城市選擇器未因IP原因被禁用時，才顯示台灣城市列表 */}
-                                {formData.mmse.country === "台灣" && !isCitySelectionDisabled && 
-                                    safeMap(taiwaneseCitiesAndCounties, (city) => (
-                                        <option key={city} value={city}>{city}</option>
-                                    ))
-                                } 
-                            </select> 
-                        </div> 
-                        <div style={{ marginBottom: "20px" }}> 
-                            <label style={questionLabelStyles}>Q. 測驗進行方式？ <span style={{color: 'red'}}>*</span></label> 
-                            {safeMap(modeOptions, (mode) => ( 
-                                <label key={mode} style={optionLabelStyles}>
-                                    <input type="radio" name="mode" value={mode} 
-                                           checked={formData.mmse.mode === mode} 
-                                           onChange={(e) => handleMMSEChange("mode", e.target.value)} 
-                                           disabled={isLocating}
-                                    /> {mode}
-                                </label> 
-                            ))} 
-                        </div> 
-                    </fieldset> 
-                );
-            case 4: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>③ 記憶({currentStep}/{totalSteps})</legend><p style={questionLabelStyles}>請記住接下來播放的三個詞：</p><div style={{display:'flex',flexDirection:'column',gap:'18px',marginTop:'15px'}}>{safeMap(wordsToRecall,(w,i)=>(<div key={w.id} style={{display:'flex',alignItems:'center',gap:'15px'}}><span style={{fontSize:'17px',fontWeight:'500',minWidth:'60px'}}>詞語{i+1}:</span><audio controls src={w.audioSrc} preload="auto" style={{width:"100%"}}></audio></div>))}</div></fieldset>);
-            case 5: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>④ 計算題(第一題為100-7)({currentStep}/{totalSteps})</legend><p style={questionLabelStyles}>從100開始，每次減7，連續作答五次：</p>{safeMap(q4Steps,s=>(<div key={s} style={{marginBottom:"15px",display:'flex',alignItems:'center',gap:'10px'}}><label htmlFor={`sub${s}`} style={{width:'100px',textAlign:'right',whiteSpace:'nowrap',fontSize:'17px',fontWeight:'500'}}>第{s}次：</label><input id={`sub${s}`} type="number" value={formData.mmse[`sub${s}`]||""} onChange={e=>handleMMSEChange(`sub${s}`,e.target.value)} style={{padding:"10px",width:"150px",fontSize:'17px',borderRadius:'4px',border:'1px solid #ccc'}}/></div>))}</fieldset>);
-            case 6: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>⑤ 回憶({currentStep}/{totalSteps})</legend><p style={questionLabelStyles}>請選出先前請您記住的三個詞(最多選三張)：</p><div style={{display:'flex',flexWrap:'wrap',gap:'20px',marginTop:'15px',justifyContent:'center'}}>{safeMap(recallOptions,w=>{const sel=!!formData.mmse[`image_memory_${w.id}`];return(<label key={w.id} style={sel?selectedImageOptionLabelStyles:imageOptionLabelStyles}><img src={w.imgSrc} alt={w.name} style={{width:200,height:200,objectFit:'contain',marginBottom:10,borderRadius:'4px'}} onError={e=>{e.target.alt=`Img ${w.name} Err`;e.target.src='';}}/><div style={{display:'flex',alignItems:'center',marginTop:'5px'}}><input type="checkbox" name={`img_mem_${w.id}`} checked={sel} onChange={e=>{const chk=e.target.checked;const cnt=Object.keys(formData.mmse).filter(k=>k.startsWith("image_memory_")&&formData.mmse[k]).length;if(chk&&cnt>=3&&!formData.mmse[`image_memory_${w.id}`])alert("最多選三個詞！");else handleMMSEChange(`image_memory_${w.id}`,chk);}}/><span>{w.name}</span></div></label>)})}</div></fieldset>);
-            case 7: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>⑥ 命名({currentStep}/{totalSteps})</legend><p style={questionLabelStyles}>{`哪張圖是「${namingTargets[0]?.name||''}」跟「${namingTargets[1]?.name||''}」？(選兩項)`}</p><div style={{display:'flex',flexWrap:'wrap',gap:'20px',marginTop:'15px',justifyContent:'center'}}>{safeMap(displayedNamingItems,(it,idx)=>{const sel=!!(formData.mmse.naming_selections&&formData.mmse.naming_selections[it.id]);return(<label key={it.id} style={sel?selectedImageOptionLabelStyles:imageOptionLabelStyles}><img src={it.imgSrc} alt={it.name} style={{width:200,height:200,objectFit:'contain',marginBottom:10,borderRadius:'4px'}} onError={e=>{e.target.alt=`Img ${it.name} Fail`;e.target.src='';}}/><div style={{display:'flex',alignItems:'center',marginTop:'5px',justifyContent:'center'}}><input type="checkbox" checked={sel} onChange={e=>{const chk=e.target.checked;const sels={...(formData.mmse.naming_selections||{})};const selIds=Object.keys(sels).filter(k=>sels[k]);if(chk&&selIds.length>=2&&!sels[it.id]){alert("最多選兩項");return;}sels[it.id]=chk;handleMMSEChange("naming_selections",sels);}}/><span style={{marginLeft:'8px'}}>選項{idx+1}</span></div></label>);})}</div></fieldset>);
-            case 8: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>⑦ 重複({currentStep}/{totalSteps})</legend><p style={questionLabelStyles}>聆聽後，選出語序正確的句子：</p><audio controls src="/audio/sentence1.mp3" preload="auto" style={{display:'block',margin:'15px auto 25px auto',width:"100%"}}></audio><div style={{marginTop:"10px",display:'flex',flexDirection:'column',gap:'10px'}}>{safeMap(q7SentenceOrderOptions,(o,i)=>(<label key={i} style={{display:"block",padding:"12px 15px",fontSize:'17px',border:'1px solid #eee',borderRadius:'4px',cursor:'pointer',backgroundColor:formData.mmse.sentence_order===o?'#e0f3ff':'#fff'}}><input type="radio" name="sentence_order" value={o} checked={formData.mmse.sentence_order===o} onChange={()=>handleMMSEChange("sentence_order",o)}/> {o}</label>))}</div></fieldset>);
-            case 9: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>⑧ 理解與執行({currentStep}/{totalSteps})</legend><p style={questionLabelStyles}>依播放順序點選三個動作：</p><audio controls src="/audio/action_instruction.mp3" preload="auto" style={{display:'block',margin:'15px auto 25px auto',width:"100%"}}></audio>
-                {safeMap(actionRows,(r,rIdx)=>(<div key={rIdx} style={{display:"flex",alignItems:"center",gap:"20px",marginBottom:"25px",paddingBottom:rIdx<actionRows.length-1?"20px":"0",borderBottom:rIdx<actionRows.length-1?"1px dashed #ddd":"none"}}><div style={{width:"40px",textAlign:"center",fontSize:"28px",flexShrink:0,color:'#555'}}>{["1️⃣","2️⃣","3️⃣"][rIdx]}</div><div style={{display:"flex",gap:"15px",flexWrap:"wrap",justifyContent:'center'}}>{safeMap(r,aItm=>{const sel=formData.mmse[`action_row${rIdx}`]===aItm.text;return(<label key={aItm.text} style={sel?selectedImageOptionLabelStyles:imageOptionLabelStyles} className="custom-radio"><input type="radio" name={`action_row${rIdx}`} value={aItm.text} checked={sel} onChange={()=>handleMMSEChange(`action_row${rIdx}`,aItm.text)}/><span className="radio-visual"></span><img src={aItm.imgSrc} alt={aItm.text} style={{width:"180px",height:"180px",objectFit:"contain",borderRadius:'4px',marginTop:'5px'}} onError={e=>{e.target.style.display='none';}}/></label>)})}</div></div>))}</fieldset>);
-            case 10: return ( <fieldset style={fieldsetStyles}> <legend style={legendStyles}>⑨ 書寫 (步驟 {currentStep}/{totalSteps})</legend><p style={questionLabelStyles}>請填寫詞語讓句子完整：「我今天_____。」</p> <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '15px', justifyContent: 'center' }}> {safeMap(q9FillSentenceOptions, (opt, idx) => ( <label key={idx} style={{padding: "10px 15px", cursor: "pointer", fontSize: '17px', border: '1px solid #eee', borderRadius: '4px', backgroundColor: formData.mmse.fill_sentence === opt ? '#e0f3ff' : '#fff' }}> <input type="radio" name="fill_sentence" value={opt} checked={formData.mmse.fill_sentence === opt} onChange={() => handleMMSEChange("fill_sentence", opt)} /> {opt} </label> ))} </div> </fieldset> );
-            case 11: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>⑩ 指令卡({currentStep}/{totalSteps})</legend><p style={questionLabelStyles}>閱讀並依指令行動：</p><div style={{border:"2px solid #333",padding:"30px",margin:"20px auto",fontSize:"22px",fontWeight:"bold",textAlign:"center",maxWidth:"90%",lineHeight:"1.6",backgroundColor:'#fff',borderRadius:'6px'}}>請閱讀完畢後，按下「我已閱讀指令並完成動作」按鈕，然後從下方圖片中選取「跑步」的動作。</div>
-                <button onClick={()=>{handleMMSEChange("follow_command_action","已完成");setCommandDone(true);}} disabled={commandDone||!!formData.mmse.follow_command_action} style={{padding:"12px 20px",marginRight:"10px",cursor:(commandDone||!!formData.mmse.follow_command_action)?"default":"pointer",backgroundColor:(commandDone||!!formData.mmse.follow_command_action)?"#d4edda":"#007bff",color:(commandDone||!!formData.mmse.follow_command_action)?"#155724":"white",border:"none",borderRadius:"5px",fontSize:'17px',fontWeight:'500'}}>{(commandDone||!!formData.mmse.follow_command_action)?"✅ 我已閱讀指令":"我已閱讀指令並完成動作"}</button>
-                {(commandDone||!!formData.mmse.follow_command_action)&&(<>
-                <p style={{marginTop:"30px",fontWeight:"bold",fontSize:"18px"}}>指令卡指令是要您選取下列哪個動作？</p>
-                <div style={{display:'flex',justifyContent:'space-around',gap:'20px',flexWrap:'wrap',marginTop:'15px'}}>{safeMap(commandActionOptions,itm=>{const sel=formData.mmse.follow_command_choice===itm.text;return(<label key={itm.text} style={sel?selectedImageOptionLabelStyles:imageOptionLabelStyles} className="custom-radio"><input type="radio" name="follow_command_choice" value={itm.text} checked={sel} onChange={()=>handleMMSEChange("follow_command_choice",itm.text)}/><span className="radio-visual"></span><img src={itm.imgSrc} alt={itm.text} style={{width:"180px",height:"180px",objectFit:"contain",borderRadius:'4px',marginTop:'5px'}} onError={e=>{e.target.style.display='none';}}/></label>)})}</div></>)}</fieldset>);
-            case 12: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>⑪ 視覺空間({currentStep}/{totalSteps})</legend><p style={questionLabelStyles}>哪張是「兩個交疊的五邊形」？</p><div style={{display:'flex',flexWrap:'wrap',gap:'20px',marginTop:'15px',justifyContent:'center'}}>{safeMap(q11OverlapImgOptions,i=>{const sel=formData.mmse.overlap_choice===`選項${i}`;return(<label key={`overlap-${i}`} style={sel?selectedImageOptionLabelStyles:imageOptionLabelStyles}><img src={`/images/overlap${i}.jpg`} alt={`選項${i}`} style={{width:150,height:120,objectFit:'contain',marginBottom:10,borderRadius:'4px'}} onError={e=>{e.target.alt=`OptImg ${i} Err`;e.target.src='';}}/><div style={{display:'flex',alignItems:'center',marginTop:'5px'}}><input type="radio" name="overlap_choice" value={`選項${i}`} checked={sel} onChange={()=>handleMMSEChange("overlap_choice",`選項${i}`)}/><span>選項 {i}</span></div></label>)})}</div></fieldset>);
+            case 2: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>① 時間定向({currentStep}/{totalSteps})</legend>
+                <div style={stepInstructionStyles}>請問今天的日期是？</div>
+                {safeMap(q1DateFields, (f) => { const opts = generateOptions(f); if (!Array.isArray(opts)) return <p key={f} style={{ color: "red" }}>Err:{f}</p>; return (<div key={f} style={{ marginBottom: "15px", display: 'flex', alignItems: 'center', gap: '10px' }}><label htmlFor={`s-${f}`} style={{ minWidth: '90px', textAlign: 'right', fontSize: '17px', fontWeight: '500' }}>{f === 'year' ? '年份' : f === 'month' ? '月份' : f === 'date' ? '日期' : f === 'weekday' ? '星期幾' : '季節'}：</label><select id={`s-${f}`} value={formData.mmse[f] || ""} onChange={e => handleMMSEChange(f, e.target.value)} required style={{ ...selectStyles, minWidth: "200px", flexGrow: 1 }}><option value="">請選擇</option>{safeMap(opts, (op, j) => typeof op === 'object' ? (<option key={j} value={op.value} title={op.hint}>{op.label}{op.hint ? `(${op.hint})` : ''}</option>) : (<option key={j} value={op}>{op}</option>))}</select></div>); })}</fieldset>);
+            case 3: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}> ② 地點定向({currentStep}/{totalSteps})
+                {isLocating && <span style={{ marginLeft: '15px', fontSize: '16px', color: '#007bff', fontWeight: 'normal' }}>🌍 正在獲取您的IP位置資訊...</span>}
+                {ipLocationData.error && !isLocating && (<span style={{ marginLeft: '15px', fontSize: '14px', color: 'red', fontWeight: 'normal' }}>✗ IP位置資訊獲取失敗。</span>)}
+            </legend>
+                <div style={stepInstructionStyles}>請問您現在所在的地點是？</div>
+                <div style={{ marginBottom: "20px" }}><label style={questionLabelStyles}>Q. 本測驗進行於哪一國？ <span style={{ color: 'red' }}>*</span></label>{safeMap(countryOptions, (c) => (<label key={c} style={optionLabelStyles}><input type="radio" name="country" value={c} checked={formData.mmse.country === c} onChange={(e) => handleMMSEChange("country", e.target.value)} disabled={isLocating} /> {c}</label>))}</div>
+                <div style={{ marginBottom: "20px" }}><label htmlFor="citySelect" style={questionLabelStyles}>Q. 您目前所在城市/縣市？{formData.mmse.country === "台灣" && ipLocationData.ipCountry === "台灣" && <span style={{ color: 'red' }}>*</span>}{isCitySelectionDisabled && ipLocationData.ipCountry && ipLocationData.ipCountry !== "台灣" && <span style={{ fontSize: '0.9em', color: '#6c757d', marginLeft: '10px' }}>(IP偵測非台灣地區，無需選擇城市)</span>}</label><select id="citySelect" value={formData.mmse.city || ""} onChange={(e) => handleMMSEChange("city", e.target.value)} style={citySelectorEffectiveStyle} disabled={isCitySelectionDisabled || formData.mmse.country !== "台灣"} required={formData.mmse.country === "台灣" && ipLocationData.ipCountry === "台灣" && !isCitySelectionDisabled}><option value="">{isCitySelectionDisabled || formData.mmse.country !== "台灣" ? "無需選擇" : "請選擇城市/縣市"}</option>{formData.mmse.country === "台灣" && !isCitySelectionDisabled && safeMap(taiwaneseCitiesAndCounties, (city) => (<option key={city} value={city}>{city}</option>))}</select></div>
+                <div style={{ marginBottom: "20px" }}><label style={questionLabelStyles}>Q. 測驗進行方式？ <span style={{ color: 'red' }}>*</span></label>{safeMap(modeOptions, (mode) => (<label key={mode} style={optionLabelStyles}><input type="radio" name="mode" value={mode} checked={formData.mmse.mode === mode} onChange={(e) => handleMMSEChange("mode", e.target.value)} disabled={isLocating} /> {mode}</label>))}</div>
+            </fieldset>);
+            case 4: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>③ 記憶({currentStep}/{totalSteps})</legend>
+            <p style={{ 
+                ...questionLabelStyles, 
+                fontSize: '35px', // 將主要指示文字放大
+                textAlign: 'center', 
+                marginBottom: '25px' 
+            }}>
+                請記住接下來播放的三個詞
+                <br />
+                <span style={{ 
+                    color: '#6c757d', 
+                    fontWeight: 'normal', 
+                    fontSize: '17px', // 將輔助提示文字也放大
+                    marginTop: '8px', // 稍微增加間距
+                    display: 'inline-block'
+                }}>
+                    (請點擊每個詞語旁的「▶」播放按鈕以聆聽發音)
+                </span>
+            </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginTop: '15px' }}>{safeMap(wordsToRecall, (w, i) => (<div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: '15px' }}><span style={{ fontSize: '17px', fontWeight: '500', minWidth: '60px' }}>詞語{i + 1}:</span><audio controls src={w.audioSrc} preload="auto" style={{ width: "100%" }}></audio></div>))}</div></fieldset>);
+            case 5: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>④ 計算({currentStep}/{totalSteps})</legend>
+                <div style={stepInstructionStyles}>從100開始，每次減7，請連續作答五次：</div>
+                {safeMap(q4Steps, s => (<div key={s} style={{ marginBottom: "15px", display: 'flex', alignItems: 'center', gap: '10px' }}><label htmlFor={`sub${s}`} style={{ width: '100px', textAlign: 'right', whiteSpace: 'nowrap', fontSize: '17px', fontWeight: '500' }}>第{s}次：</label><input id={`sub${s}`} type="number" value={formData.mmse[`sub${s}`] || ""} onChange={e => handleMMSEChange(`sub${s}`, e.target.value)} style={{ padding: "10px", width: "150px", fontSize: '17px', borderRadius: '4px', border: '1px solid #ccc' }} /></div>))}</fieldset>);
+            case 6: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>⑤ 回憶({currentStep}/{totalSteps})</legend>
+                <div style={stepInstructionStyles}>請選出先前聲音播放題，您記住的三個詞 (最多選三張)：</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', marginTop: '15px', justifyContent: 'center' }}>{safeMap(recallOptions, w => { const sel = !!formData.mmse[`image_memory_${w.id}`]; return (<label key={w.id} style={sel ? selectedImageOptionLabelStyles : imageOptionLabelStyles}><img src={w.imgSrc} alt={w.name} style={{ width: 200, height: 200, objectFit: 'contain', marginBottom: 10, borderRadius: '4px' }} onError={e => { e.target.alt = `Img ${w.name} Err`; e.target.src = ''; }} /><div style={{ display: 'flex', alignItems: 'center', marginTop: '5px' }}><input type="checkbox" name={`img_mem_${w.id}`} checked={sel} onChange={e => { const chk = e.target.checked; const cnt = Object.keys(formData.mmse).filter(k => k.startsWith("image_memory_") && formData.mmse[k]).length; if (chk && cnt >= 3 && !formData.mmse[`image_memory_${w.id}`]) alert("最多選三個詞！"); else handleMMSEChange(`image_memory_${w.id}`, chk); }} /><span>{w.name}</span></div></label>) })}</div></fieldset>);
+            case 7: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>⑥ 命名({currentStep}/{totalSteps})</legend>
+                <div style={stepInstructionStyles}>{`請從下方圖片中，選出代表「${namingTargets[0]?.name || ''}」與「${namingTargets[1]?.name || ''}」的兩張圖：`}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', marginTop: '15px', justifyContent: 'center' }}>{safeMap(displayedNamingItems, (it, idx) => { const sel = !!(formData.mmse.naming_selections && formData.mmse.naming_selections[it.id]); return (<label key={it.id} style={sel ? selectedImageOptionLabelStyles : imageOptionLabelStyles}><img src={it.imgSrc} alt={it.name} style={{ width: 200, height: 200, objectFit: 'contain', marginBottom: 10, borderRadius: '4px' }} onError={e => { e.target.alt = `Img ${it.name} Fail`; e.target.src = ''; }} /><div style={{ display: 'flex', alignItems: 'center', marginTop: '5px', justifyContent: 'center' }}><input type="checkbox" checked={sel} onChange={e => { const chk = e.target.checked; const sels = { ...(formData.mmse.naming_selections || {}) }; const selIds = Object.keys(sels).filter(k => sels[k]); if (chk && selIds.length >= 2 && !sels[it.id]) { alert("最多選兩項"); return; } sels[it.id] = chk; handleMMSEChange("naming_selections", sels); }} /><span style={{ marginLeft: '8px' }}>選項{idx + 1}</span></div></label>); })}</div></fieldset>);
+            case 8: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>⑦ 重複({currentStep}/{totalSteps})</legend>
+                <div style={stepInstructionStyles}>請先聆聽下方的音檔，然後選出與音檔內容完全相同的句子：<span style={{ 
+                    color: '#6c757d', 
+                    fontWeight: 'normal', 
+                    fontSize: '20px', 
+                    marginTop: '5px',
+                    display: 'inline-block'
+                }}></span></div>
+                <audio controls src="/audio/sentence1.mp3" preload="auto" style={{ display: 'block', margin: '15px auto 25px auto', width: "100%" }}></audio><div style={{ marginTop: "10px", display: 'flex', flexDirection: 'column', gap: '10px' }}>{safeMap(q7SentenceOrderOptions, (o, i) => (<label key={i} style={{ display: "block", padding: "12px 15px", fontSize: '17px', border: '1px solid #eee', borderRadius: '4px', cursor: 'pointer', backgroundColor: formData.mmse.sentence_order === o ? '#e0f3ff' : '#fff' }}><input type="radio" name="sentence_order" value={o} checked={formData.mmse.sentence_order === o} onChange={() => handleMMSEChange("sentence_order", o)} /> {o}</label>))}</div></fieldset>);
+            case 9: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>⑧ 理解與執行({currentStep}/{totalSteps})</legend>
+                <div style={stepInstructionStyles}>請依撥放語音，依序點選三個提示的動作：                <br />
+                <span style={{ 
+                    color: '#6c757d', 
+                    fontWeight: 'normal', 
+                    fontSize: '20px', 
+                    marginTop: '5px',
+                    display: 'inline-block'
+                }}>
+                    (請點擊下方的「▶」播放按鈕以聆聽指令)
+                </span></div>
+                <audio controls src="/audio/action_instruction.mp3" preload="auto" style={{ display: 'block', margin: '15px auto 25px auto', width: "100%" }}></audio>
+                {safeMap(actionRows, (r, rIdx) => (<div key={rIdx} style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "25px", paddingBottom: rIdx < actionRows.length - 1 ? "20px" : "0", borderBottom: rIdx < actionRows.length - 1 ? "1px dashed #ddd" : "none" }}><div style={{ width: "40px", textAlign: "center", fontSize: "28px", flexShrink: 0, color: '#555' }}>{["1️⃣", "2️⃣", "3️⃣"][rIdx]}</div><div style={{ display: "flex", gap: "15px", flexWrap: "wrap", justifyContent: 'center' }}>{safeMap(r, aItm => { const sel = formData.mmse[`action_row${rIdx}`] === aItm.text; return (<label key={aItm.text} style={sel ? selectedImageOptionLabelStyles : imageOptionLabelStyles} className="custom-radio"><input type="radio" name={`action_row${rIdx}`} value={aItm.text} checked={sel} onChange={() => handleMMSEChange(`action_row${rIdx}`, aItm.text)} /><span className="radio-visual"></span><img src={aItm.imgSrc} alt={aItm.text} style={{ width: "180px", height: "180px", objectFit: "contain", borderRadius: '4px', marginTop: '5px' }} onError={e => { e.target.style.display = 'none'; }} /></label>) })}</div></div>))}</fieldset>);
+            case 10: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>⑨ 書寫({currentStep}/{totalSteps})</legend>
+                <div style={stepInstructionStyles}>請選出一個最適合的詞語，讓句子「我今天_____。」變得通順且完整：</div>
+                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '15px', justifyContent: 'center' }}> {safeMap(q9FillSentenceOptions, (opt, idx) => (<label key={idx} style={{ padding: "10px 15px", cursor: "pointer", fontSize: '17px', border: '1px solid #eee', borderRadius: '4px', backgroundColor: formData.mmse.fill_sentence === opt ? '#e0f3ff' : '#fff' }}> <input type="radio" name="fill_sentence" value={opt} checked={formData.mmse.fill_sentence === opt} onChange={() => handleMMSEChange("fill_sentence", opt)} /> {opt} </label>))}</div></fieldset>);
+            case 11: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>⑩ 指令卡({currentStep}/{totalSteps})</legend>
+                <div style={stepInstructionStyles}>請閱讀指令卡上的文字，並依照指令完成動作：</div>
+                <div style={{ border: "2px solid #333", padding: "30px", margin: "20px auto", fontSize: "22px", fontWeight: "bold", textAlign: "center", maxWidth: "90%", lineHeight: "1.6", backgroundColor: '#fff', borderRadius: '6px' }}>請閱讀完畢後，按下「我已閱讀指令並完成動作」按鈕，然後從下方圖片中選取「跑步」的動作。</div>
+                <button onClick={() => { handleMMSEChange("follow_command_action", "已完成"); setCommandDone(true); }} disabled={commandDone || !!formData.mmse.follow_command_action} style={{ padding: "12px 20px", marginRight: "10px", cursor: (commandDone || !!formData.mmse.follow_command_action) ? "default" : "pointer", backgroundColor: (commandDone || !!formData.mmse.follow_command_action) ? "#d4edda" : "#007bff", color: (commandDone || !!formData.mmse.follow_command_action) ? "#155724" : "white", border: "none", borderRadius: "5px", fontSize: '17px', fontWeight: '500' }}>{(commandDone || !!formData.mmse.follow_command_action) ? "✅ 我已閱讀指令" : "我已閱讀指令並完成動作"}</button>
+                {(commandDone || !!formData.mmse.follow_command_action) && (<>
+                    <p style={{ marginTop: "30px", fontWeight: "bold", fontSize: "18px" }}>指令卡指令是要您選取下列哪個動作？</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-around', gap: '20px', flexWrap: 'wrap', marginTop: '15px' }}>{safeMap(commandActionOptions, itm => { const sel = formData.mmse.follow_command_choice === itm.text; return (<label key={itm.text} style={sel ? selectedImageOptionLabelStyles : imageOptionLabelStyles} className="custom-radio"><input type="radio" name="follow_command_choice" value={itm.text} checked={sel} onChange={() => handleMMSEChange("follow_command_choice", itm.text)} /><span className="radio-visual"></span><img src={itm.imgSrc} alt={itm.text} style={{ width: "18px", height: "180px", objectFit: "contain", borderRadius: '4px', marginTop: '5px' }} onError={e => { e.target.style.display = 'none'; }} /></label>) })}</div></>)}</fieldset>);
+            case 12: return (<fieldset style={fieldsetStyles}><legend style={legendStyles}>⑪ 視覺空間({currentStep}/{totalSteps})</legend>
+                <div style={stepInstructionStyles}>請選出代表「兩個交疊的五邊形」的圖案：</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', marginTop: '15px', justifyContent: 'center' }}>{safeMap(q11OverlapImgOptions, i => { const sel = formData.mmse.overlap_choice === `選項${i}`; return (<label key={`overlap-${i}`} style={sel ? selectedImageOptionLabelStyles : imageOptionLabelStyles}><img src={`/images/overlap${i}.jpg`} alt={`選項${i}`} style={{ width: 150, height: 120, objectFit: 'contain', marginBottom: 10, borderRadius: '4px' }} onError={e => { e.target.alt = `OptImg ${i} Err`; e.target.src = ''; }} /><div style={{ display: 'flex', alignItems: 'center', marginTop: '5px' }}><input type="radio" name="overlap_choice" value={`選項${i}`} checked={sel} onChange={() => handleMMSEChange("overlap_choice", `選項${i}`)} /><span>選項 {i}</span></div></label>) })}</div></fieldset>);
             default: return <p>頁面載入中或發生未知錯誤。</p>;
         }
     };
