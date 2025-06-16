@@ -1,4 +1,4 @@
-# --- START OF FILE main_with_advice.py (MODIFIED) ---
+# --- START OF FILE main_with_advice.py (縮排已修正) ---
 from fastapi import FastAPI, UploadFile, File, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
@@ -15,7 +15,7 @@ from typing_extensions import Annotated
 
 import mysql.connector
 from mysql.connector import Error as MySQLError
-import random # 用於模擬預測
+# import random # 不再需要，已移除
 
 # --- Database Configuration ---
 DB_CONFIG = {
@@ -26,7 +26,7 @@ DB_CONFIG = {
     'database': 'clock_test_system'
 }
 
-# --- Pydantic Models (保持不變) ---
+# --- Pydantic Models ---
 class MMSESubmission(BaseModel):
     email: Optional[EmailStr] = None
     gender: str
@@ -66,7 +66,7 @@ class FeedbackSubmission(BaseModel):
     session_id: Optional[int] = None
     questionnaire: FeedbackQuestionnaire
 
-# --- FastAPI Initialization & CORS (保持不變) ---
+# --- FastAPI Initialization & CORS ---
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -74,7 +74,7 @@ app.add_middleware(
     allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
 )
 
-# --- Database Connection Function (保持不變) ---
+# --- Database Connection Function ---
 def get_db_connection():
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
@@ -86,29 +86,37 @@ def get_db_connection():
     return None
 
 # --- Model & Device Setup ---
-# 如果您有真實模型，請取消註解並配置以下程式碼
+print("🤖 正在設定並載入 AI 模型...")
 num_classes = 2
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"🤖 使用的設備為: {device}")
 MODEL_PATH = "vgg16_transfer_best_model_addnewdata.pth"
-model_cdt = models.vgg16(weights=None) # 或者 models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
+model_cdt = models.vgg16(weights=None)
 model_cdt.classifier[6] = nn.Linear(model_cdt.classifier[6].in_features, num_classes)
-if os.path.exists(MODEL_PATH):
-     try:
-         model_cdt.load_state_dict(torch.load(MODEL_PATH, map_location=device))
-         print(f"✅ CDT 模型權重 '{MODEL_PATH}' 載入成功。")
-     except Exception as e:
-         print(f"❌ 載入 CDT 模型權重 '{MODEL_PATH}' 失敗: {e}")
- else:
-     print(f"❌ 錯誤：找不到 CDT 模型權重檔案 '{MODEL_PATH}'。")
- model_cdt = model_cdt.to(device)
- model_cdt.eval()
 
- transform_cdt = transforms.Compose([
-     transforms.Resize(256),
-     transforms.CenterCrop(224),
-     transforms.ToTensor(),
-     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
- ])
+if os.path.exists(MODEL_PATH):
+    try:
+        model_cdt.load_state_dict(torch.load(MODEL_PATH, map_location=device))
+        print(f"✅ CDT 模型權重 '{MODEL_PATH}' 載入成功。")
+    except Exception as e:
+        print(f"❌ 載入 CDT 模型權重 '{MODEL_PATH}' 失敗: {e}")
+else:
+    print(f"❌ 錯誤：找不到 CDT 模型權重檔案 '{MODEL_PATH}'。")
+
+# --- START: 修正縮排問題 ---
+# 這幾行應該在 if/else 之外，與 if 平行
+model_cdt = model_cdt.to(device)
+model_cdt.eval()
+
+transform_cdt = transforms.Compose([
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+# --- END: 修正縮排問題 ---
+print("🤖 AI 模型已設定完成。")
+
 
 CDT_IMAGES_DIR = "cdt_images"
 os.makedirs(CDT_IMAGES_DIR, exist_ok=True)
@@ -118,21 +126,12 @@ os.makedirs(CDT_IMAGES_DIR, exist_ok=True)
 @app.get("/api/get_location_from_ip")
 async def get_location_from_ip(request: Request):
     client_ip = request.client.host
-    # 實際部署時建議使用 requests 向 ip-api.com 或其他服務發送請求
-    # import requests
-    # try:
-    #     response = requests.get(f"http://ip-api.com/json/{client_ip}?fields=status,message,country,city,query")
-    #     data = response.json()
-    #     ...
-    # except Exception as e:
-    #     ...
     print(f"🌍 Mocking IP location for {client_ip}")
     return {"country": "台灣", "city": "高雄市", "query_ip": client_ip, "raw_country": "Taiwan", "raw_city": "Kaohsiung"}
 
 
 @app.post("/api/submit_mmse_session")
 async def submit_mmse_session(submission: MMSESubmission):
-    # 此函數保持不變
     db_conn = None; cursor = None
     try:
         db_conn = get_db_connection()
@@ -182,51 +181,33 @@ async def submit_mmse_session(submission: MMSESubmission):
         if cursor: cursor.close()
         if db_conn and db_conn.is_connected(): db_conn.close()
 
-# --- START OF MODIFICATION ---
+
 @app.post("/predict/")
 async def predict_image(request: Request, session_id: int, file: UploadFile = File(...)):
-    """
-    接收上傳的畫鐘圖片，進行預測，儲存結果，並返回 JSON 格式的分析。
-    session_id 作為查詢參數傳遞，例如: /predict/?session_id=123
-    """
     if not session_id:
         raise HTTPException(status_code=400, detail="請求中缺少 session_id")
 
     try:
         contents = await file.read()
         
-        # --- MOCK PREDICTION LOGIC (for testing without a real model) ---
-        # 移除或註解此區塊當您要使用真實模型時
-     #   is_normal = random.choice([True, False])
-     #   if is_normal:
-     #       label = "normal"
-     #       confidence_percent = random.uniform(85.0, 99.9)
-     #       advice = "模擬結果：時鐘繪製測驗結果顯示正常，您的視覺空間和執行功能表現良好。"
-     #   else:
-     #       label = "abnormal"
-     #     confidence_percent = random.uniform(70.0, 95.0)
-     #       advice = "模擬結果：時鐘繪製測驗結果顯示可能存在異常。建議諮詢專業醫師進行進一步評估。"
-        # --- END OF MOCK PREDICTION ---
+        # --- REAL MODEL PREDICTION LOGIC ---
+        image = Image.open(io.BytesIO(contents)).convert("RGB")
+        image_tensor = transform_cdt(image).unsqueeze(0).to(device)
         
-        # --- REAL MODEL PREDICTION LOGIC (uncomment to use) ---
-         image = Image.open(io.BytesIO(contents)).convert("RGB")
-         image_tensor = transform_cdt(image).unsqueeze(0).to(device)
+        with torch.no_grad():
+            outputs = model_cdt(image_tensor)
+            probabilities = torch.nn.functional.softmax(outputs, dim=1)
+            confidence, predicted = torch.max(probabilities, 1)
         
-         with torch.no_grad():
-             outputs = model_cdt(image_tensor)
-             probabilities = torch.nn.functional.softmax(outputs, dim=1)
-             confidence, predicted = torch.max(probabilities, 1)
+        predicted_class_index = predicted.item()
+        confidence_percent = confidence.item() * 100
+        class_names = ["abnormal", "normal"]  # 確保索引 0=abnormal, 1=normal
+        label = class_names[predicted_class_index]
         
-         predicted_class_index = predicted.item()
-         confidence_percent = confidence.item() * 100
-         class_names = ["abnormal", "normal"]  # Ensure index 0=abnormal, 1=normal
-         label = class_names[predicted_class_index]
-        
-         if label == "normal":
-             advice = "時鐘繪製測驗結果顯示正常，您的視覺空間和執行功能表現良好。"
-         else:
-             advice = "時鐘繪製測驗結果顯示可能存在異常。建議諮詢專業醫師進行進一步評估。"
-        # --- END OF REAL MODEL LOGIC ---
+        if label == "normal":
+            advice = "時鐘繪製測驗結果顯示正常，您的視覺空間和執行功能表現良好。"
+        else:
+            advice = "時鐘繪製測驗結果顯示可能存在異常。建議諮詢專業醫師進行進一步評估。"
 
     except Exception as e:
         print(f"❌ 圖片處理或模型預測失敗: {e}")
@@ -272,11 +253,10 @@ async def predict_image(request: Request, session_id: int, file: UploadFile = Fi
         "confidence": round(confidence_percent, 2),
         "advice": advice
     }
-# --- END OF MODIFICATION ---
+
 
 @app.post("/api/submit_feedback")
 async def submit_feedback(submission: FeedbackSubmission):
-    # 此函數保持不變
     db_conn = None; cursor = None
     try:
         db_conn = get_db_connection()
@@ -313,7 +293,6 @@ async def submit_feedback(submission: FeedbackSubmission):
         if db_conn and db_conn.is_connected(): db_conn.close()
 
 def create_tables_if_not_exist():
-    # 此函數保持不變
     db_conn = None; cursor = None
     try:
         db_conn = get_db_connection()
@@ -369,4 +348,4 @@ async def startup_event():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main_with_advice:app", host="0.0.0.0", port=8000, reload=True)
-# --- END OF FILE main_with_advice.py (MODIFIED) ---
+# --- END OF FILE main_with_advice.py (縮排已修正) ---
