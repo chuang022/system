@@ -19,24 +19,34 @@ const DrawingPage = ({ email }) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     
-    const rect = canvas.getBoundingClientRect();
+// 獲取事件的 clientX, clientY，無論是滑鼠還是觸控
     let clientX, clientY;
-
     if (e.touches && e.touches.length > 0) {
-      // 觸控事件
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
     } else {
-      // 滑鼠事件
       clientX = e.clientX;
       clientY = e.clientY;
     }
     
+    const rect = canvas.getBoundingClientRect();
+
+    // 計算滑鼠/觸控點相對於 canvas 元素的偏移量
+    const offsetX = clientX - rect.left;
+    const offsetY = clientY - rect.top;
+
+    // 關鍵修正：考慮 CSS 縮放導致的尺寸差異
+    // canvas.width 是畫布的繪圖表面寬度 (e.g., 600)
+    // rect.width 是 canvas 元素在頁面上實際渲染的寬度 (e.g., 300px)
+    // 我們需要將偏移量按比例縮放回原始的畫布座標系統
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top,
+      x: offsetX * scaleX,
+      y: offsetY * scaleY,
     };
-  };
+};
 
   const startDrawing = (e) => {
     e.preventDefault(); // 防止在觸控設備上滾動頁面
@@ -230,6 +240,24 @@ const DrawingPage = ({ email }) => {
     <div style={{ textAlign: "center", fontFamily: "Arial, sans-serif", padding: "20px" }}>
         <h2 style={{ marginBottom: "10px", color: "#333" }}>🕒 CDT 畫鐘測驗</h2>
         <p style={{ marginBottom: "20px", fontSize: "18px" }}> 請在下方畫布繪製一個時鐘，並將時間設定為 <strong>上午 11 點 10 分</strong>。 </p>
+<div style={{ 
+    maxWidth: '600px',
+    margin: '-10px auto 20px auto',
+    padding: '12px 20px',
+    backgroundColor: '#f0f4f8', // 改為更中性的淡藍灰色
+    borderLeft: '4px solid #4a90e2', // 穩重的藍色邊框
+    borderRadius: '4px',
+    color: '#333', // 主要文字顏色
+    fontSize: '15px',
+    lineHeight: '1.7',
+    textAlign: 'left' // 讓列表文字靠左對齊
+}}>
+    <strong style={{ display: 'block', marginBottom: '8px', fontSize: '16px' }}>✏️ 操作提示：</strong>
+    <ul style={{ paddingLeft: '20px', margin: 0 }}>
+        <li><strong>電腦 / 筆電：</strong>可以使用「滑鼠」進行繪製。</li>
+        <li><strong>觸控螢幕 / 平板 / 手機：</strong>請直接用「手指」或「觸控筆」進行繪製。</li>
+    </ul>
+</div>
         <canvas
             ref={canvasRef}
             width={600}
